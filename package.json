@@ -1,0 +1,15 @@
+{
+  "name": "c1pay-db-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for querying the c1pay PostgreSQL database",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "pg": "^8.13.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "c1pay-db": {
+      "command": "node",
+      "args": ["/Users/vindhyasurampudi/Documents/Workspace/mcp-setup/src/index.js"],
+      "env": {}
+    }
+  }
+}
