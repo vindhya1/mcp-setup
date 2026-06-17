@@ -4,6 +4,22 @@
 
 An MCP (Model Context Protocol) server that gives Claude direct access to the `c1pay` PostgreSQL database. Claude can write and run its own SQL queries without any middleman app.
 
+Normally when you use Claude in an app, the flow looks like this:
+
+```
+You → App → App queries DB → App sends results to Claude → Claude responds
+```
+
+The app acts as the middleman — it decides what data to fetch, runs the query, and hands Claude the results as text.
+
+With MCP, the flow is:
+
+```
+You → Claude → Claude calls the query tool → DB → Claude responds
+```
+
+There's no app in between. Claude itself decides what SQL to write, calls the `query` tool directly, gets the raw rows back, and uses that to answer you. For example, when you ask "how many users are registered?", Claude writes `SELECT COUNT(*) FROM users` and runs it itself.
+
 ---
 
 ## How it works
