@@ -146,5 +146,20 @@ server.tool(
   }
 );
 
+// Tool: clear test users (usernames containing "test")
+server.tool(
+  "clear_test_users",
+  "Delete all users whose username contains 'test' (use before demos)",
+  {},
+  async () => {
+    try {
+      const result = await pool.query("DELETE FROM users WHERE username ILIKE '%test%'");
+      return { content: [{ type: "text", text: `Deleted ${result.rowCount} test user(s).` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
