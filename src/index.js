@@ -344,6 +344,97 @@ server.tool(
   }
 );
 
+// ─── Dashboard Chart Tools ───────────────────────────────────────────────────
+
+server.tool(
+  "get_transaction_volume_by_day",
+  "Get daily transaction count and volume for the last N days (default 30), for charting",
+  {
+    days: z.number().optional().describe("Number of days to look back (default 30)"),
+  },
+  async ({ days = 30 }) => {
+    try {
+      const result = await pool.query(
+        `SELECT DATE(created_at) AS date,
+                COUNT(*) AS count,
+                ROUND(SUM(amount_cents) / 100.0, 2) AS volume_dollars
+         FROM transactions
+         WHERE created_at >= NOW() - INTERVAL '${parseInt(days)} days'
+         GROUP BY DATE(created_at)
+         ORDER BY date ASC`
+      );
+      return { content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "get_top_users_by_balance",
+  "Get the top N users ranked by their current balance (default top 10)",
+  {
+    limit: z.number().optional().describe("Number of users to return (default 10)"),
+  },
+  async ({ limit = 10 }) => {
+    try {
+      const result = await pool.query(
+        `SELECT username, ROUND(balance_cents / 100.0, 2) AS balance_dollars
+         FROM users
+         ORDER BY balance_cents DESC
+         LIMIT $1`,
+        [limit]
+      );
+      return { content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "get_user_registrations_by_day",
+  "Get daily new user registration counts for the last N days (default 30), for charting",
+  {
+    days: z.number().optional().describe("Number of days to look back (default 30)"),
+  },
+  async ({ days = 30 }) => {
+    try {
+      const result = await pool.query(
+        `SELECT DATE(created_at) AS date, COUNT(*) AS count
+         FROM users
+         WHERE created_at >= NOW() - INTERVAL '${parseInt(days)} days'
+         GROUP BY DATE(created_at)
+         ORDER BY date ASC`
+      );
+      return { content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "get_payment_requests_summary_by_status",
+  "Get count and total dollar amount of payment requests grouped by status, for charting",
+  {},
+  async () => {
+    try {
+      const result = await pool.query(
+        `SELECT status,
+                COUNT(*) AS count,
+                ROUND(SUM(amount_cents) / 100.0, 2) AS total_dollars
+         FROM payment_requests
+         GROUP BY status
+         ORDER BY count DESC`
+      );
+      return { content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
 // ─── End Analytics & Reporting Tools ────────────────────────────────────────
 
 // Tool: get recently registered users
