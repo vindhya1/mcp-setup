@@ -4,6 +4,7 @@ import pg from "pg";
 import { z } from "zod";
 import { spawnSync } from "child_process";
 import os from "os";
+import crypto from "crypto";
 
 const { Pool } = pg;
 
@@ -484,6 +485,65 @@ server.tool(
     try {
       const result = await pool.query("DELETE FROM users WHERE username ILIKE '%test%'");
       return { content: [{ type: "text", text: `Deleted ${result.rowCount} test user(s).` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+// Tool: create a new user
+server.tool(
+  "create_user",
+  "Create a new user with a username and password. Balance defaults to $1000 (100000 cents).",
+  {
+    username: z.string().min(1).describe("Unique username for the new user"),
+    password: z.string().min(6).describe("Plain-text password (will be hashed before storing)"),
+    balance_cents: z.number().int().min(0).optional().describe("Starting balance in cents (default: 100000 = $1000)"),
+  },
+  async ({ username, password, balance_cents = 100000 }) => {
+    try {
+      const password_hash = crypto.createHash("sha256").update(password + "_c1pay_salt").digest("hex");
+      const result = await pool.query(
+        `INSERT INTO users (username, password_hash, balance_cents)
+         VALUES ($1, $2, $3)
+         RETURNING id, username, balance_cents, created_at`,
+        [username, password_hash, balance_cents]
+      );
+      const user = result.rows[0];
+      return {
+        content: [{
+          type: "text",
+          text: `User created successfully:\n  ID: ${user.id}\n  Username: ${user.username}\n  Balance: $${(user.balance_cents / 100).toFixed(2)}\n  Created: ${user.created_at}`,
+        }],
+      };
+    } catch (err) {
+      if (err.code === "23505") {
+        return { content: [{ type: "text", text: `Error: Username "${username}" is already taken.` }], isError: true };
+      }
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+// Tool: delete a user by username or ID
+server.tool(
+  "delete_user",
+  "Delete a user by username or numeric ID.",
+  {
+    identifier: z.union([z.string(), z.number().int()]).describe("Username (string) or user ID (number)"),
+  },
+  async ({ identifier }) => {
+    try {
+      const isId = typeof identifier === "number";
+      const result = await pool.query(
+        `DELETE FROM users WHERE ${isId ? "id" : "username"} = $1 RETURNING id, username`,
+        [identifier]
+      );
+      if (result.rowCount === 0) {
+        return { content: [{ type: "text", text: `No user found with ${isId ? "ID" : "username"} "${identifier}".` }], isError: true };
+      }
+      const { id, username } = result.rows[0];
+      return { content: [{ type: "text", text: `Deleted user: ${username} (ID: ${id})` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
     }

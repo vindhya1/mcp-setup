@@ -1,12 +1,14 @@
 {
-  "name": "c1pay-db-mcp",
+  "name": "postgres-db-mcp-server",
   "version": "1.0.0",
   "description": "MCP server for querying the c1pay PostgreSQL database",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "seed": "node scripts/seed-users.js",
+    "seed:clear": "node scripts/seed-users.js --clear"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
